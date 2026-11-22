@@ -44,6 +44,13 @@ def make_plate_code(region: str) -> str:
         ru_pick=lambda count:"".join(secrets.choice(ru_letters) for _ in range(count))
         return f"{ru_pick(1)} {pick(digits,3)} {ru_pick(2)} {area}"
     if region=="EU": return f"{pick(letters,2)} · {pick(digits,3)} · {pick(letters,2)}"
+    if region=="DE": return f"{secrets.choice(['B','M','HH','F','K','D','S'])} {pick(letters,2)} {pick(digits,secrets.choice([3,4]))}"
+    if region=="US": return f"{pick(letters,1)}{pick(digits,3)}{pick(letters,2)}{pick(digits,2)}"
+    if region=="GB": return f"{pick(letters,2)}{pick(digits,2)} {pick(letters,3)}"
+    if region=="FR": return f"{pick(letters,2)}-{pick(digits,3)}-{pick(letters,2)}"
+    if region=="JP": return f"{secrets.choice(['品川','横浜','大阪','名古屋','神戸'])} {pick(digits,3)} {secrets.choice(['あ','い','う','か','き'])} {pick(digits,2)}-{pick(digits,2)}"
+    if region=="PL": return f"{secrets.choice(['WA','DW','KR','PO','GD','LU'])} {pick(digits,5)}"
+    if region=="AE": return f"{secrets.choice(['1','2','3','4','5','6','7'])} {pick(digits,5)}"
     return f"{pick(letters,2)} {pick(digits,4)} {pick(letters,2)}"
 
 async def spin_once(db: AsyncSession,player: Player,region: str="UA",cost: int=SPIN_COST,luck_multiplier: int=1,legend_multiplier: int=1,mythic_multiplier: int=1):
