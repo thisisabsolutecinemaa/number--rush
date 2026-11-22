@@ -29,7 +29,10 @@ function App() {
   const initData=tg?.initData || '';
   const user=tg?.initDataUnsafe?.user;
   const [adminData,setAdminData]=React.useState<any>(null);
-  const [eventCatalog,setEventCatalog]=React.useState<any[]>([]);\n  const [eventSearch,setEventSearch]=React.useState('');\n  const [eventDuration,setEventDuration]=React.useState('30');\n  const [globalEvents,setGlobalEvents]=React.useState<any[]>([]);
+  const [eventCatalog,setEventCatalog]=React.useState<any[]>([]);
+  const [eventSearch,setEventSearch]=React.useState('');
+  const [eventDuration,setEventDuration]=React.useState('30');
+  const [globalEvents,setGlobalEvents]=React.useState<any[]>([]);
   const [grantId,setGrantId]=React.useState('');
   const [grantAmount,setGrantAmount]=React.useState('100000');
   const isAdmin=String(user?.id||'')==='8415813092';
