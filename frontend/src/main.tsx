@@ -4,6 +4,7 @@ import './style.css';
 
 declare global { interface Window { Telegram?: any } }
 const tg = window.Telegram?.WebApp;
+const API_URL = import.meta.env.VITE_API_URL || 'https://number-rush-api-1ywd.onrender.com';
 tg?.ready(); tg?.expand();
 
 type Tab = 'spin' | 'collection' | 'rating' | 'profile';
@@ -26,10 +27,12 @@ function App() {
   async function spin() {
     setBusy(true); setError(''); setResult(null);
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/spin`, {
+      const res = await fetch(`${API_URL}/api/spin`, {
         method:'POST', headers:{'X-Telegram-Init-Data':initData}
       });
-      const data = await res.json();
+      const raw = await res.text();
+      let data: any;
+      try { data = JSON.parse(raw); } catch { throw new Error('Сервер вернул неверный ответ. Попробуй ещё раз.'); }
       if (!res.ok) throw new Error(data.detail || 'Ошибка прокрутки');
       setResult(data); setBalance(data.balance); tg?.HapticFeedback?.notificationOccurred('success');
     } catch(e:any) { setError(e.message || 'Не удалось связаться с сервером'); }
