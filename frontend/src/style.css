@@ -85,3 +85,16 @@ html,body,#root{background:#0b0e13;color:#f3f5f9}
 .result-check{background:#249b60}
 button:focus-visible{outline-color:#4da0ff}
 @media(prefers-color-scheme:light){:root{color-scheme:dark}}
+
+
+.sell-all-button{width:100%;margin-top:17px;padding:13px;border:1px solid #394557;border-radius:13px;background:#182230;color:#ffbd78;font-size:10px;font-weight:800;letter-spacing:.55px}
+.inventory-info{min-width:0;flex:1}
+.sell-item-button{border:1px solid #60404a;border-radius:10px;background:#2a1b24;color:#ff9ca9;padding:9px 10px;font-size:10px;font-weight:700}
+.choice-overlay{position:fixed;z-index:30;inset:0;display:flex;align-items:flex-end;justify-content:center;background:#0009;backdrop-filter:blur(7px);padding:16px}
+.choice-sheet{width:min(480px,100%);padding:14px 18px calc(20px + env(safe-area-inset-bottom));border:1px solid #303b4c;border-radius:24px 24px 18px 18px;background:#151c27;box-shadow:0 -12px 50px #0008;text-align:center;animation:appear .22s ease both}
+.choice-handle{width:38px;height:4px;margin:0 auto 18px;border-radius:5px;background:#566174}
+.choice-sheet h2{margin:10px 0 4px;color:#f5f7fb;font-size:27px;letter-spacing:1px}
+.choice-sheet p{margin:0 0 18px;color:#a3adbd;font-size:12px}
+.choice-sell,.choice-garage{width:100%;height:49px;border:0;border-radius:13px;font-size:11px;font-weight:800;letter-spacing:.5px}
+.choice-sell{background:#1678ef;color:white;box-shadow:0 5px 16px #007aff35}
+.choice-garage{margin-top:9px;background:#242e3c;color:#e5eaf2;border:1px solid #3a4657}
