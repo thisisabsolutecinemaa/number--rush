@@ -81,3 +81,12 @@ class Announcement(Base):
     body: Mapped[str] = mapped_column(String(1000), nullable=False)
     created_by: Mapped[int] = mapped_column(BigInteger, nullable=False)
     created_at: Mapped[object] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)
+
+
+class TaskClaim(Base):
+    __tablename__ = "task_claims"
+    __table_args__ = (UniqueConstraint("player_id", "task_id"),)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    player_id: Mapped[int] = mapped_column(BigInteger, index=True)
+    task_id: Mapped[str] = mapped_column(String(32), nullable=False)
+    created_at: Mapped[object] = mapped_column(DateTime(timezone=True), server_default=func.now())
