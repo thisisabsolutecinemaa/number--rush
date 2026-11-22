@@ -154,3 +154,5 @@ html,body,#root{background:#07090d}
 .event-option{border-radius:8px}
 .admin-section input,.admin-section textarea{border-radius:8px}
 @media(max-width:380px){.nav-item{min-width:49px}.nav-item small{font-size:8px}}
+
+.task-actions button{border:1px solid #98602f;border-radius:8px;background:#382317;color:#ffc185;padding:8px 10px;font-size:8px;font-weight:800}
