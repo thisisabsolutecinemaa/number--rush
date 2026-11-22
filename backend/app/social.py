@@ -57,6 +57,10 @@ async def reset_garage(x_telegram_init_data: str = Header(default="")):
         async with db.begin():
             rows=(await db.execute(select(InventoryItem).where(InventoryItem.owner_id==uid).with_for_update())).scalars().all()
             count=len(rows)
+            ids=[row.id for row in rows]
+            if ids:
+                listings=(await db.execute(select(MarketListing).where(MarketListing.item_id.in_(ids)).with_for_update())).scalars().all()
+                for listing in listings: await db.delete(listing)
             for row in rows: await db.delete(row)
     return {"ok":True,"deleted":count}
 
