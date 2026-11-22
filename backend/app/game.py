@@ -33,43 +33,40 @@ def sell_price(rarity: str) -> int:
     return SELL_PRICES.get(rarity, 500)
 
 
-async def spin_once(db: AsyncSession, player: Player):
-    if player.balance < SPIN_COST:
-        raise ValueError("Недостаточно игровых рублей")
+def make_plate_code(region: str) -> str:
+    letters="ABCDEFGHJKLMNPRSTUVWXYZ"
+    digits="0123456789"
+    pick=lambda chars,count:"".join(secrets.choice(chars) for _ in range(count))
+    if region=="CN": return f"{secrets.choice(['京','沪','粤','浙','苏','川','鲁','鄂','闽','津'])}{pick(letters,1)}·{pick(digits,5)}"
+    if region=="RU":
+        area=secrets.choice(["77","97","99","177","197","199","777","799","50","150","750","78","98","178","198"])
+        return f"{pick(letters,1)} {pick(digits,3)} {pick(letters,2)} {area}"
+    if region=="EU": return f"{pick(letters,2)} · {pick(digits,3)} · {pick(letters,2)}"
+    return f"{pick(letters,2)} {pick(digits,4)} {pick(letters,2)}"
 
-    owned_codes = (
-        select(Plate.code)
-        .join(InventoryItem, InventoryItem.plate_id == Plate.id)
-        .where(InventoryItem.owner_id == player.telegram_id)
-    )
-    available_query = select(Plate).where(~Plate.code.in_(owned_codes))
-    available_plates = (await db.execute(available_query)).scalars().all()
-    if not available_plates:
-        raise ValueError("Все доступные номера уже собраны. Новые номера скоро появятся.")
-
-    by_rarity = {}
-    for plate in available_plates:
-        by_rarity.setdefault(plate.rarity, []).append(plate)
-
-    pool = [
-        (name, weight)
-        for name, weight in RARITY_WEIGHTS
-        if weight > 0 and by_rarity.get(name)
-    ]
-    if not pool:
-        raise ValueError("Для новых номеров пока не настроены шансы выпадения.")
-
-    total = sum(weight for _, weight in pool)
-    ticket = secrets.randbelow(total)
-    rarity = next(name for name, weight in pool if (ticket := ticket - weight) < 0)
-    plate = secrets.choice(by_rarity[rarity])
-
-    player.balance -= SPIN_COST
-    db.add(Ledger(player_id=player.telegram_id, delta=-SPIN_COST, reason="spin"))
-    item = InventoryItem(owner_id=player.telegram_id, plate_id=plate.id)
+async def spin_once(db: AsyncSession,player: Player,region: str="UA",cost: int=SPIN_COST,luck_multiplier: int=1):
+    if player.balance<cost: raise ValueError("Недостаточно игровых рублей")
+    weights=[(name,weight*(luck_multiplier if name in {"Редкий","Эпический","Легендарный","Мифический"} else 1)) for name,weight in RARITY_WEIGHTS if weight>0]
+    ticket=secrets.randbelow(sum(weight for _,weight in weights))
+    rarity=next(name for name,weight in weights if (ticket:=ticket-weight)<0)
+    region=region if region in {"UA","CN","RU","EU"} else "UA"
+    code=make_plate_code(region)
+    for _ in range(30):
+        exists=await db.execute(select(Plate.id).where(Plate.code==code))
+        if exists.scalar_one_or_none() is None: break
+        code=make_plate_code(region)
+    else: raise ValueError("Не удалось создать уникальный номер. Повторите попытку.")
+    names={"UA":"Украина","CN":"Китай","RU":"Россия","EU":"Европа"}
+    talisman=rarity in {"Эпический","Легендарный","Мифический","Секретный","Абсолют"}
+    plate=Plate(code=code,region=names[region],category="Случайная комбинация",rarity=rarity,talisman=talisman,buff={"luck":1} if talisman else {})
+    db.add(plate)
+    await db.flush()
+    player.balance-=cost
+    db.add(Ledger(player_id=player.telegram_id,delta=-cost,reason="spin"))
+    item=InventoryItem(owner_id=player.telegram_id,plate_id=plate.id)
     db.add(item)
     await db.flush()
-    return item, plate
+    return item,plate
 
 async def equip_talisman(db: AsyncSession, player: Player, item_id: int):
     from .models import Plate
