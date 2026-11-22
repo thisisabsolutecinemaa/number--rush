@@ -8,7 +8,7 @@ const API_URL = import.meta.env.VITE_API_URL || 'https://number-rush-api-1ywd.on
 tg?.ready();
 tg?.expand();
 
-type Tab = 'spin' | 'collection' | 'rating' | 'profile';
+type Tab = 'spin' | 'collection' | 'rating' | 'profile' | 'admin';
 const regions = {
   UA:{flag:'🇺🇦',sample:'AA 0000 XX',name:'Украина',detail:'UA · ЕВРОПЕЙСКИЙ ФОРМАТ'},
   CN:{flag:'🇨🇳',sample:'京 A·88888',name:'Китай',detail:'CN · КИТАЙСКИЙ ФОРМАТ'},
@@ -26,6 +26,15 @@ function App() {
   const [inventory,setInventory]=React.useState<any[]>([]);
   const [showChoice,setShowChoice]=React.useState(false);
   const [notice,setNotice]=React.useState('');
+  const [adminData,setAdminData]=React.useState<any>(null);
+  const [grantId,setGrantId]=React.useState('');
+  const [grantAmount,setGrantAmount]=React.useState('100000');
+  const isAdmin=String(user?.id||'')==='8415813092';
+  async function loadAdmin(){const r=await fetch(API_URL+'/api/admin',{headers:{'X-Telegram-Init-Data':initData},cache:'no-store'});const d=await r.json();if(!r.ok)throw new Error(d.detail||'Нет доступа');setAdminData(d);}
+  async function startEvent(type:string){const r=await fetch(API_URL+'/api/admin/event',{method:'POST',headers:{'Content-Type':'application/json','X-Telegram-Init-Data':initData},body:JSON.stringify({event_type:type,duration_minutes:30})});const d=await r.json();if(!r.ok){setNotice(d.detail||'Ошибка эвента');return;}setNotice('Запущено: '+d.title);await loadAdmin();}
+  async function stopEvents(){const r=await fetch(API_URL+'/api/admin/event/stop',{method:'POST',headers:{'X-Telegram-Init-Data':initData}});const d=await r.json();if(!r.ok){setNotice(d.detail||'Ошибка');return;}setNotice('Все эвенты остановлены');await loadAdmin();}
+  async function grantBalance(){const r=await fetch(API_URL+'/api/admin/grant',{method:'POST',headers:{'Content-Type':'application/json','X-Telegram-Init-Data':initData},body:JSON.stringify({telegram_id:Number(grantId),amount:Number(grantAmount)})});const d=await r.json();if(!r.ok){setNotice(d.detail||'Не удалось начислить');return;}setNotice('Начислено. Баланс: '+d.balance.toLocaleString('ru-RU')+' ₽');}
+
   const initData=tg?.initData || '';
   const user=tg?.initDataUnsafe?.user;
 
@@ -36,6 +45,7 @@ function App() {
   },[initData]);
 
   React.useEffect(()=>{
+    if(tab==='admin'&&isAdmin&&initData){loadAdmin().catch(e=>setNotice(e.message));return;}
     if(tab!=='collection'||!initData)return;
     fetch(`${API_URL}/api/inventory`,{headers:{'X-Telegram-Init-Data':initData},cache:'no-store'})
       .then(r=>r.ok?r.json():[]).then(d=>setInventory(Array.isArray(d)?d:[])).catch(()=>setInventory([]));
@@ -46,7 +56,7 @@ function App() {
     if(!initData){setError('Открой NUMBER RUSH из Telegram, чтобы играть и сохранять номера.');return;}
     setBusy(true);setError('');setResult(null);
     try{
-      const response=await fetch(`${API_URL}/api/spin`,{method:'POST',headers:{'X-Telegram-Init-Data':initData},cache:'no-store'});
+      const response=await fetch(`${API_URL}/api/spin`,{method:'POST',headers:{'Content-Type':'application/json','X-Telegram-Init-Data':initData},body:JSON.stringify({region:country}),cache:'no-store'});
       const raw=await response.text();
       let data:any;
       try{data=JSON.parse(raw)}catch{throw new Error('Сервер прислал неправильный ответ. Попробуй ещё раз.')}
@@ -80,7 +90,7 @@ function App() {
     {id:'spin',symbol:'◉',label:'Крутка'},
     {id:'collection',symbol:'▤',label:'Гараж'},
     {id:'rating',symbol:'♧',label:'Рейтинг'},
-    {id:'profile',symbol:'●',label:'Профиль'}
+    {id:'profile',symbol:'●',label:'Профиль'},...(isAdmin?[{id:'admin' as Tab,symbol:'⚡',label:'ADMIN'}]:[])
   ];
 
   return <main className="app-shell">
@@ -116,6 +126,7 @@ function App() {
 
     {tab==='collection'&&<section className="page-view"><div className="page-title"><span className="eyebrow">ТВОИ НАХОДКИ</span><h1>Гараж</h1><p>Храни, продавай и собирай коллекцию номеров.</p></div>{inventory.length>0&&<button className="sell-all-button" onClick={sellAll}>ПРОДАТЬ ВСЁ НЕЭКИПИРОВАННОЕ</button>}{notice&&<div className="notice">{notice}</div>}{inventory.length?<div className="inventory-list">{inventory.map(item=><div className="inventory-item" key={item.item_id}><div className="inventory-plate">{item.code}</div><div className="inventory-info"><b>{item.rarity}</b><small>{item.region} · {item.category}</small><small>{item.equipped?"Экипирован":"Цена продажи: "+({ "Обычный":500,"Необычный":1500,"Редкий":5000,"Эпический":15000,"Легендарный":50000,"Мифический":150000,"Секретный":500000,"Абсолют":1000000 }[item.rarity]||500).toLocaleString("ru-RU")+" ₽"}</small></div>{!item.equipped&&<button className="sell-item-button" onClick={()=>sellItem(item.item_id)}>Слить</button>}</div>)}</div>:<div className="empty-state"><div className="empty-icon">▤</div><b>Здесь пока пусто</b><p>Твои новые номера будут появляться здесь после прокрутки.</p><button onClick={()=>setTab('spin')}>ОТКРЫТЬ ПЕРВЫЙ НОМЕР</button></div>}</section>}
     {tab==='rating'&&<section className="page-view"><div className="page-title"><span className="eyebrow">NUMBER RUSH COMMUNITY</span><h1>Рейтинг</h1><p>Сравнивай свою коллекцию с другими игроками.</p></div><div className="empty-state"><div className="empty-icon">♧</div><b>Рейтинг скоро появится</b><p>Готовим таблицу лучших коллекционеров.</p></div></section>}
+    {tab==='admin'&&isAdmin&&<section className="page-view admin-view"><div className="page-title"><span className="eyebrow">ROOT ACCESS · 8415813092</span><h1>Панель управления</h1><p>Админ-доступ проверяется сервером. Эвенты действуют 30 минут.</p></div><div className="admin-stats"><div><small>ИГРОКИ</small><b>{adminData?.players??'—'}</b></div><div><small>НОМЕРА В ГАРАЖАХ</small><b>{adminData?.items??'—'}</b></div></div><div className="admin-section"><b>Глобальные эвенты</b><button onClick={()=>startEvent('luck')}>✦ Удачный час · x3 редкие</button><button onClick={()=>startEvent('discount')}>₽ Скидка · прокрутка 2 500 ₽</button><button onClick={()=>startEvent('double_sell')}>↗ Скупщик · x2 продажа</button><button className="admin-stop" onClick={stopEvents}>Остановить все эвенты</button></div><div className="admin-section"><b>Выдать валюту</b><input value={grantId} onChange={e=>setGrantId(e.target.value)} placeholder="Telegram ID игрока" inputMode="numeric"/><input value={grantAmount} onChange={e=>setGrantAmount(e.target.value)} placeholder="Сумма" inputMode="numeric"/><button onClick={grantBalance} disabled={!grantId||Number(grantAmount)<=0}>Начислить ₽</button></div><div className="admin-section"><b>Активные эвенты</b>{adminData?.events?.length?adminData.events.map((e:any)=><p key={e.id}>{e.title}</p>):<small>Сейчас нет активных эвентов</small>}</div>{notice&&<div className="notice">{notice}</div>}</section>}
     {tab==='profile'&&<section className="page-view"><div className="page-title"><span className="eyebrow">ТВОЙ АККАУНТ</span><h1>Профиль</h1><p>Информация о твоём игровом аккаунте.</p></div><div className="profile-card"><div className="profile-avatar">{(user?.first_name||'N').slice(0,1).toUpperCase()}</div><b>{user?.first_name||'Коллекционер'}</b><small>@{user?.username||'number_rush_player'}</small><div className="profile-divider"/><div className="profile-line"><span>Баланс</span><b>{balance.toLocaleString('ru-RU')} ₽</b></div><div className="profile-line"><span>Статус</span><b className="profile-status">Участник клуба</b></div></div></section>}
 
       {showChoice&&result&&<div className="choice-overlay"><div className="choice-sheet"><div className="choice-handle"/><span className="eyebrow">НОМЕР ПОЛУЧЕН</span><h2>{result.code}</h2><p>{result.rarity} · {result.region}</p><button className="choice-sell" onClick={()=>{sellItem(result.item_id);setShowChoice(false)}}>СЛИТЬ ЗА {Number(result.sell_value||0).toLocaleString("ru-RU")} ₽</button><button className="choice-garage" onClick={()=>{setShowChoice(false);setTab("collection");refreshGarage()}}>В ГАРАЖ</button></div></div>}
