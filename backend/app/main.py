@@ -19,6 +19,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "https://number-rush-rrhx.netlify.app",
+        "https://number-rush-game.onrender.com",
         "http://localhost:5173",
     ],
     allow_credentials=False,
