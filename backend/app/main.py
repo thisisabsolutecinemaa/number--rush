@@ -9,6 +9,7 @@ from .models import Base, Player, Plate, InventoryItem, Admin, Ledger, GameEvent
 from .game import seed_default_plates
 from .security import verify_telegram_init_data
 from .game import spin_once, equip_talisman, SPIN_COST, sell_price
+from .social import router as social_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -18,7 +19,8 @@ async def lifespan(app: FastAPI):
         await seed_default_plates(db)
     yield
 
-app = FastAPI(title="NUMBER RUSH API", lifespan=lifespan)
+app = FastAPI(title="Nomerki API", lifespan=lifespan)
+app.include_router(social_router)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
