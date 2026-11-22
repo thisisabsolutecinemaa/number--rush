@@ -22,10 +22,12 @@ async def spin_once(db: AsyncSession, player: Player):
     if player.balance < SPIN_COST:
         raise ValueError("Недостаточно игровых рублей")
 
-    owned_plate_ids = select(InventoryItem.plate_id).where(
-        InventoryItem.owner_id == player.telegram_id
+    owned_codes = (
+        select(Plate.code)
+        .join(InventoryItem, InventoryItem.plate_id == Plate.id)
+        .where(InventoryItem.owner_id == player.telegram_id)
     )
-    available_query = select(Plate).where(~Plate.id.in_(owned_plate_ids))
+    available_query = select(Plate).where(~Plate.code.in_(owned_codes))
     available_plates = (await db.execute(available_query)).scalars().all()
     if not available_plates:
         raise ValueError("Все доступные номера уже собраны. Новые номера скоро появятся.")
