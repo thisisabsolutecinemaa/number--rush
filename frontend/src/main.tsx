@@ -13,7 +13,14 @@ const regions = {
   UA:{flag:'🇺🇦',sample:'AA 0000 XX',name:'Украина',detail:'UA · ЕВРОПЕЙСКИЙ ФОРМАТ'},
   CN:{flag:'🇨🇳',sample:'京 A·88888',name:'Китай',detail:'CN · КИТАЙСКИЙ ФОРМАТ'},
   RU:{flag:'🇷🇺',sample:'А 000 АА 77',name:'Россия',detail:'RU · РОССИЙСКИЙ ФОРМАТ'},
-  EU:{flag:'🇪🇺',sample:'AB · 123 · CD',name:'Европа',detail:'EU · ЕВРОПЕЙСКИЙ ФОРМАТ'}
+  EU:{flag:'🇪🇺',sample:'AB · 123 · CD',name:'Европа',detail:'EU · ЕВРОПЕЙСКИЙ ФОРМАТ'},
+  DE:{flag:'🇩🇪',sample:'B AB 1234',name:'Германия',detail:'DE · НЕМЕЦКИЙ ФОРМАТ'},
+  US:{flag:'🇺🇸',sample:'8ABC123',name:'США',detail:'US · АМЕРИКАНСКИЙ ФОРМАТ'},
+  GB:{flag:'🇬🇧',sample:'AB12 CDE',name:'Британия',detail:'GB · БРИТАНСКИЙ ФОРМАТ'},
+  FR:{flag:'🇫🇷',sample:'AB-123-CD',name:'Франция',detail:'FR · ФРАНЦУЗСКИЙ ФОРМАТ'},
+  JP:{flag:'🇯🇵',sample:'品川 300 あ 12-34',name:'Япония',detail:'JP · ЯПОНСКИЙ ФОРМАТ'},
+  PL:{flag:'🇵🇱',sample:'WX 12345',name:'Польша',detail:'PL · ПОЛЬСКИЙ ФОРМАТ'},
+  AE:{flag:'🇦🇪',sample:'5 12345',name:'ОАЭ',detail:'AE · ФОРМАТ ЭМИРАТОВ'}
 };
 
 function App() {
@@ -126,7 +133,7 @@ function App() {
 
   return <main className="app-shell">
     <header className="topbar">
-      <div className="app-icon">NR</div>
+      <div className="app-icon">NM</div>
       <div className="brand-copy"><b>Nomerki</b><small>Plate collection</small></div>
       <div className="online-pill"><i/> Онлайн</div>
     </header>
