@@ -8,76 +8,94 @@ const API_URL = import.meta.env.VITE_API_URL || 'https://number-rush-api-1ywd.on
 tg?.ready(); tg?.expand();
 
 type Tab = 'spin' | 'collection' | 'rating' | 'profile';
+const plates: Record<string,{flag:string;sample:string;label:string;sub:string}> = {
+  UA:{flag:'🇺🇦',sample:'AA 0000 XX',label:'УКРАИНА',sub:'EUROPEAN STANDARD'},
+  CN:{flag:'🇨🇳',sample:'京 A·88888',label:'КИТАЙ',sub:'MAINLAND CHINA'},
+  RU:{flag:'🇷🇺',sample:'А 000 АА 77',label:'РОССИЯ',sub:'RUSSIAN FEDERATION'},
+  EU:{flag:'🇪🇺',sample:'AB · 123 · CD',label:'ЕВРОПА',sub:'EUROPEAN UNION'}
+};
 
 function App() {
-  const [balance,setBalance] = React.useState<number>(100000);
-  const [result,setResult] = React.useState<any>(null);
-  const [busy,setBusy] = React.useState(false);
-  const [error,setError] = React.useState('');
-  const [tab,setTab] = React.useState<Tab>('spin');
-  const [country,setCountry] = React.useState('UA');
-  const initData = tg?.initData || '';
-  const plates: Record<string,{flag:string;sample:string;label:string}> = {
-    UA:{flag:'🇺🇦',sample:'AA 0000 XX',label:'УКРАИНА'},
-    CN:{flag:'🇨🇳',sample:'京 A·88888',label:'КИТАЙ'},
-    RU:{flag:'🇷🇺',sample:'А 000 АА 77',label:'РОССИЯ'},
-    EU:{flag:'🇪🇺',sample:'AB · 123 · CD',label:'ЕВРОПА'}
-  };
+  const [balance,setBalance]=React.useState(100000);
+  const [result,setResult]=React.useState<any>(null);
+  const [busy,setBusy]=React.useState(false);
+  const [error,setError]=React.useState('');
+  const [tab,setTab]=React.useState<Tab>('spin');
+  const [country,setCountry]=React.useState('UA');
+  const initData=tg?.initData || '';
 
   async function spin() {
+    if (busy) return;
     setBusy(true); setError(''); setResult(null);
     try {
-      const res = await fetch(`${API_URL}/api/spin`, {
-        method:'POST', headers:{'X-Telegram-Init-Data':initData}
-      });
-      const raw = await res.text();
-      let data: any;
-      try { data = JSON.parse(raw); } catch { throw new Error('Сервер вернул неверный ответ. Попробуй ещё раз.'); }
-      if (!res.ok) throw new Error(data.detail || 'Ошибка прокрутки');
+      const res=await fetch(`${API_URL}/api/spin`,{method:'POST',headers:{'X-Telegram-Init-Data':initData}});
+      const raw=await res.text();
+      let data:any;
+      try { data=JSON.parse(raw); } catch { throw new Error('Сервер вернул некорректный ответ. Попробуй ещё раз.'); }
+      if (!res.ok) throw new Error(data.detail || 'Не удалось открыть номер');
       setResult(data); setBalance(data.balance); tg?.HapticFeedback?.notificationOccurred('success');
-    } catch(e:any) { setError(e.message || 'Не удалось связаться с сервером'); }
+    } catch(e:any) { setError(e.message || 'Нет соединения с сервером'); }
     finally { setBusy(false); }
   }
 
-  const nav: {id:Tab;icon:string;label:string}[] = [
-    {id:'spin',icon:'🎰',label:'Крутка'},
-    {id:'collection',icon:'🎒',label:'Коллекция'},
-    {id:'rating',icon:'🏆',label:'Рейтинг'},
-    {id:'profile',icon:'👤',label:'Профиль'}
+  const nav:{id:Tab;icon:string;label:string}[]=[
+    {id:'spin',icon:'◈',label:'Крутка'},
+    {id:'collection',icon:'▤',label:'Гараж'},
+    {id:'rating',icon:'↗',label:'Рейтинг'},
+    {id:'profile',icon:'◉',label:'Профиль'}
   ];
 
-  return <main>
-    <header><div className="mark">NR</div><div><b>NUMBER RUSH</b><small>PLATE COLLECTION</small></div><span className="avatar">🚘</span></header>
-    <section className="wallet"><small>ВАШ БАЛАНС</small><strong>{balance.toLocaleString('ru-RU')} ₽</strong><span>Игровые рубли <i className="online-dot"/> <em>ONLINE</em></span></section>
+  return <main className="app-shell">
+    <header className="topbar">
+      <div className="brand-mark">NR<span>.</span></div>
+      <div className="brand-copy"><b>NUMBER RUSH</b><small>PRIVATE PLATE CLUB</small></div>
+      <div className="live-status"><i/> LIVE</div>
+    </header>
 
-    {tab === 'spin' && <section className="hero">
-      <div className="eyebrow">COLLECT • UPGRADE • TRADE</div>
-      <h1>Открой свой<br/>номер.</h1>
-      <p>Собирай коллекцию автомобильных номеров со всего мира.</p>
-      <div className="country-select" aria-label="Выбрать страну">
-        {Object.entries(plates).map(([code,p])=><button key={code} className={country===code?'country active':'country'} onClick={()=>setCountry(code)}>{p.flag} {code}</button>)}
+    <section className="balance-panel">
+      <div><span className="section-kicker">ВАШ СЧЁТ</span><strong>{balance.toLocaleString('ru-RU')} <small>₽</small></strong></div>
+      <div className="balance-side"><span>ИГРОВОЙ БАЛАНС</span><b>NR WALLET</b></div>
+    </section>
+
+    {tab==='spin' && <section className="spin-view">
+      <div className="intro">
+        <span className="section-kicker">COLLECT · UPGRADE · TRADE</span>
+        <h1>Твой номер.<br/><em>Твоя история.</em></h1>
+        <p>Коллекционируй автомобильные номера со всего мира. От редких комбинаций до настоящих легенд.</p>
       </div>
-      <div className={`plate plate-${country.toLowerCase()}`}>
-        <span className="plate-flag">{plates[country].flag}</span>
-        <b>{plates[country].sample}</b>
-        <i>{country}</i>
-        <span className="screw screw-a"/><span className="screw screw-b"/>
+
+      <div className="selector-head"><span>РЕГИОН НОМЕРА</span><span>01 — 04</span></div>
+      <div className="country-select">
+        {Object.entries(plates).map(([code,p])=><button key={code} className={country===code?'country active':'country'} onClick={()=>setCountry(code)}><span>{p.flag}</span>{code}</button>)}
       </div>
-      <div className="plate-caption">{plates[country].label} · ОБРАЗЕЦ ФОРМАТА</div>
-      <button className="spin-button" disabled={busy} onClick={spin}>{busy?'ОТКРЫВАЕМ...':'ПРОКРУТИТЬ · 5 000 ₽'}</button>
-      <small className="muted">10 прокруток — 50 000 ₽</small>
-      {error && <p className="error">{error}</p>}
-      {result && <div className="drop"><small>ВАШ ВЫПАВШИЙ НОМЕР</small><h2>{result.code}</h2><b>{result.rarity}</b><p>{result.region} · {result.category}</p></div>}
-      <div className="feature-row"><span>✨ Реалистичный вид</span><span>🌍 Весь мир</span><span>💎 Редкости</span></div>
+
+      <div className="plate-stage">
+        <div className={`plate plate-${country.toLowerCase()}`}>
+          <div className="plate-band"><span>{plates[country].flag}</span><small>{country}</small></div>
+          <b>{plates[country].sample}</b>
+          <div className="plate-screw screw-left"/><div className="plate-screw screw-right"/>
+        </div>
+        <div className="plate-meta"><span>{plates[country].label}</span><span>{plates[country].sub}</span></div>
+      </div>
+
+      <div className="rarity-strip"><span><i className="rarity-dot common"/> COMMON</span><span><i className="rarity-dot rare"/> RARE</span><span><i className="rarity-dot epic"/> EPIC+</span><span className="pool-label">ПУЛ ОБНОВЛЁН</span></div>
+
+      <button className="spin-button" disabled={busy} onClick={spin}>
+        <span>{busy?'ИДЁТ ОТКРЫТИЕ':'ОТКРЫТЬ НОМЕР'}</span><b>{busy?'…':'5 000 ₽'}</b>
+      </button>
+      <div className="spin-foot"><span>10 ОТКРЫТИЙ — 50 000 ₽</span><span>СЛУЧАЙНАЯ РЕДКОСТЬ</span></div>
+
+      {error && <div className="notice error">{error}</div>}
+      {result && <div className="result-card"><span className="section-kicker">НОВОЕ ПОПОЛНЕНИЕ ГАРАЖА</span><h2>{result.code}</h2><div><b>{result.rarity}</b><span>{result.region} · {result.category}</span></div></div>}
+
+      <div className="bottom-note"><span>01 / 04</span><p>Каждый номер — часть твоей истории.</p><span>NR CLUB</span></div>
     </section>}
 
-    {tab === 'collection' && <section className="page-panel"><div className="eyebrow">MY GARAGE</div><h1>Моя коллекция</h1><p>Все найденные номера будут собираться здесь.</p><div className="empty-state"><div>🏁</div><b>Гараж ждёт первый номер</b><small>Открой номер в разделе «Крутка», и он появится здесь.</small><button onClick={()=>setTab('spin')}>ОТКРЫТЬ НОМЕР</button></div><div className="stats-grid"><div><b>0</b><small>НОМЕРОВ</small></div><div><b>0</b><small>РЕДКИХ</small></div><div><b>0</b><small>СТРАН</small></div></div></section>}
+    {tab==='collection' && <section className="page-view"><span className="section-kicker">YOUR PRIVATE GARAGE</span><h1>Твоя<br/><em>коллекция.</em></h1><div className="empty-state"><span className="empty-symbol">▤</span><b>Гараж пока пуст</b><p>Открой первый номер — он появится здесь.</p><button onClick={()=>setTab('spin')}>НАЙТИ ПЕРВЫЙ НОМЕР ↗</button></div></section>}
+    {tab==='rating' && <section className="page-view"><span className="section-kicker">THE LEADERBOARD</span><h1>Таблица<br/><em>лидеров.</em></h1><div className="empty-state"><span className="empty-symbol">↗</span><b>Рейтинг скоро откроется</b><p>Собираем данные коллекционеров для первой таблицы.</p></div></section>}
+    {tab==='profile' && <section className="page-view"><span className="section-kicker">MEMBER ID · NR CLUB</span><h1>Твой<br/><em>профиль.</em></h1><div className="member-card"><div className="member-avatar">NR</div><b>{tg?.initDataUnsafe?.user?.first_name || 'Коллекционер'}</b><span>FOUNDING MEMBER</span><div className="member-balance"><small>БАЛАНС</small><strong>{balance.toLocaleString('ru-RU')} ₽</strong></div></div></section>}
 
-    {tab === 'rating' && <section className="page-panel"><div className="eyebrow">TOP COLLECTORS</div><h1>Рейтинг</h1><p>Соревнование коллекционеров NUMBER RUSH.</p><div className="empty-state"><div>🏆</div><b>Таблица лидеров готовится</b><small>Рейтинг появится после подключения серверной таблицы игроков.</small></div></section>}
-
-    {tab === 'profile' && <section className="page-panel"><div className="eyebrow">PLAYER CARD</div><h1>Профиль</h1><div className="profile-card"><div className="profile-avatar">🚘</div><b>{tg?.initDataUnsafe?.user?.first_name || 'Коллекционер'}</b><small>НОВИЧОК · NUMBER RUSH</small><div className="profile-line"><span>Баланс</span><b>{balance.toLocaleString('ru-RU')} ₽</b></div><div className="profile-line"><span>Статус</span><b>Участник</b></div></div></section>}
-
-    <nav>{nav.map(item=><button key={item.id} className={tab===item.id?'nav-item selected':'nav-item'} onClick={()=>setTab(item.id)}><span>{item.icon}</span><small>{item.label}</small></button>)}</nav>
+    <nav className="bottom-nav">{nav.map(item=><button key={item.id} className={tab===item.id?'nav-item selected':'nav-item'} onClick={()=>setTab(item.id)}><span>{item.icon}</span><small>{item.label}</small></button>)}</nav>
   </main>
 }
 createRoot(document.getElementById('root')!).render(<App/>);
