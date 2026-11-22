@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from sqlalchemy import select, func
 from .db import engine, Session
-from .models import Base, Player, Plate, InventoryItem, Admin, Ledger, GameEvent
+from .models import Base, Player, Plate, InventoryItem, Admin, Ledger, GameEvent, MarketListing
 from .game import seed_default_plates
 from .security import verify_telegram_init_data
 from .game import spin_once, equip_talisman, SPIN_COST, sell_price
@@ -243,6 +243,8 @@ async def sell_one(body: SellBody, x_telegram_init_data: str = Header(default=""
             amount=sell_price(plate.rarity)*active_event_effects(active_events)["sell"]
             player.balance += amount
             db.add(Ledger(player_id=uid, delta=amount, reason="sell"))
+            listing=(await db.execute(select(MarketListing).where(MarketListing.item_id==item.id).with_for_update())).scalar_one_or_none()
+            if listing: await db.delete(listing)
             await db.delete(item)
     return {"ok": True, "sold": 1, "amount": amount, "balance": player.balance}
 
@@ -260,6 +262,10 @@ async def sell_all(x_telegram_init_data: str = Header(default="")):
             active_events=(await db.execute(select(GameEvent).where(GameEvent.expires_at>datetime.now(timezone.utc)))).scalars().all()
             multiplier=active_event_effects(active_events)["sell"]
             amount=sum(sell_price(plate.rarity)*multiplier for _,plate in rows)
+            ids=[item.id for item,_ in rows]
+            if ids:
+                listings=(await db.execute(select(MarketListing).where(MarketListing.item_id.in_(ids)).with_for_update())).scalars().all()
+                for listing in listings: await db.delete(listing)
             for item, _ in rows:
                 await db.delete(item)
             if amount:
