@@ -4,31 +4,49 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from .models import Plate, Player, InventoryItem, Ledger
 
 RARITY_WEIGHTS = [
-    ("Обычный", 700_000),
-    ("Необычный", 200_000),
-    ("Редкий", 70_000),
-    ("Эпический", 26_890),
-    ("Легендарный", 3_000),  # 0.30%
-    ("Мифический", 100),    # 0.01%
-    ("Секретный", 0),       # event/admin pool; not in normal spin
-    ("Абсолют", 10),        # 0.001%
+    ("Обычный", 800_000),
+    ("Необычный", 150_000),
+    ("Редкий", 40_000),
+    ("Эпический", 9_000),
+    ("Легендарный", 999),
+    ("Мифический", 1),
+    ("Секретный", 0),
+    ("Абсолют", 0),
 ]
-# Weights are integer tickets out of 1,000,000. Secret is intentionally excluded.
+# Обычная прокрутка: 80% обычные, 15% необычные, 4% редкие,
+# 0.9% эпические, 0.0999% легендарные, 0.0001% мифические.
+# Секретные и абсолютные номера выдаются только событиями/администратором.
 SPIN_COST = 5_000
 
 async def spin_once(db: AsyncSession, player: Player):
     if player.balance < SPIN_COST:
         raise ValueError("Недостаточно игровых рублей")
-    available = (await db.execute(select(Plate.rarity).distinct())).scalars().all()
-    available_set = set(available)
-    pool = [(name, weight) for name, weight in RARITY_WEIGHTS if weight > 0 and name in available_set]
+
+    owned_plate_ids = select(InventoryItem.plate_id).where(
+        InventoryItem.owner_id == player.telegram_id
+    )
+    available_query = select(Plate).where(~Plate.id.in_(owned_plate_ids))
+    available_plates = (await db.execute(available_query)).scalars().all()
+    if not available_plates:
+        raise ValueError("Все доступные номера уже собраны. Новые номера скоро появятся.")
+
+    by_rarity = {}
+    for plate in available_plates:
+        by_rarity.setdefault(plate.rarity, []).append(plate)
+
+    pool = [
+        (name, weight)
+        for name, weight in RARITY_WEIGHTS
+        if weight > 0 and by_rarity.get(name)
+    ]
     if not pool:
-        raise ValueError("Пул номеров пока пуст. Попробуйте позже.")
+        raise ValueError("Для новых номеров пока не настроены шансы выпадения.")
+
     total = sum(weight for _, weight in pool)
     ticket = secrets.randbelow(total)
     rarity = next(name for name, weight in pool if (ticket := ticket - weight) < 0)
-    plates = (await db.execute(select(Plate).where(Plate.rarity == rarity))).scalars().all()
-    plate = secrets.choice(plates)
+    plate = secrets.choice(by_rarity[rarity])
+
     player.balance -= SPIN_COST
     db.add(Ledger(player_id=player.telegram_id, delta=-SPIN_COST, reason="spin"))
     item = InventoryItem(owner_id=player.telegram_id, plate_id=plate.id)
