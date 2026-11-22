@@ -57,3 +57,31 @@ button:focus-visible{outline:2px solid #007aff;outline-offset:2px}
 @keyframes plate-show{from{opacity:0;transform:translateY(8px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
 @media(max-width:360px){.app-shell{padding-left:14px;padding-right:14px}.welcome h1{font-size:31px}.plate{height:84px}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+
+:root{color-scheme:dark;color:#f3f5f9;background:#0b0e13}
+html,body,#root{background:#0b0e13;color:#f3f5f9}
+.app-shell{background:#0b0e13}
+.brand-copy small,.online-pill,.eyebrow,.section-row span,.plate-card-head,.plate-caption span,.wallet-bottom,.chance-card small,.spin-caption,.page-title p,.empty-state p,.inventory-item small,.profile-card>small,.profile-line span{color:#929baa}
+.online-pill{background:#14271f;color:#65d995}
+.welcome h1,.page-title h1{color:#f4f6fa}
+.region-option{background:#171c25;border-color:#2b3340;color:#e8edf5;box-shadow:none}
+.region-option.active{background:#102b49;border-color:#1684ff;color:#66b1ff;box-shadow:0 2px 12px #007aff20}
+.plate-card,.chance-card,.empty-state,.inventory-list,.profile-card{background:#151a23;border-color:#29313e;box-shadow:0 5px 18px #00000025}
+.chance-icon{background:#332916;color:#ffc65c}
+.chance-arrow,.inventory-item>span{color:#667184}
+.inventory-item{border-color:#29313e}
+.inventory-plate{background:linear-gradient(#f8f9fb,#dfe3e8);color:#20242a;border-color:#9da5af}
+.empty-icon{background:#102b49;color:#56a5ff}
+.profile-divider{background:#29313e}
+.profile-status{color:#61d99a}
+.bottom-nav{background:#111720ed;border-color:#28303b}
+.nav-item{color:#7f8999}
+.nav-item.selected{color:#4da0ff}
+.notice.error{background:#351c20;border-color:#633039;color:#ff9a9f}
+.result-card{background:#14271f;border-color:#285b40}
+.result-card small{color:#88cba0}
+.result-card h2{color:#f3f5f9}
+.result-card b{color:#78d99a}
+.result-check{background:#249b60}
+button:focus-visible{outline-color:#4da0ff}
+@media(prefers-color-scheme:light){:root{color-scheme:dark}}
