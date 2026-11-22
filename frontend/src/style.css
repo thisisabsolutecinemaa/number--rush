@@ -108,3 +108,49 @@ button:focus-visible{outline-color:#4da0ff}
 .event-option{display:flex;align-items:center;gap:8px;padding:10px;border:1px solid #303d50;border-radius:11px;background:#101722}
 .event-option>div{min-width:0;flex:1}.event-option b,.event-option small{display:block}.event-option b{font-size:9px}.event-option small{margin-top:4px;color:#9eabba;font-size:8px;line-height:1.4}
 .event-option button{padding:8px!important;border-color:#2766a7!important;background:#153b62!important;color:#a9d4ff!important;font-size:8px!important;white-space:nowrap}
+
+
+/* Nomerki automotive instrument-cluster interface */
+:root{color-scheme:dark;background:#07090d;color:#edf1f7}
+html,body,#root{background:#07090d}
+.app-shell{background:radial-gradient(ellipse at 50% -15%,#252018 0,#0a0d12 42%,#07090d 100%);max-width:520px}
+.topbar{border-bottom:1px solid #34302a;padding-bottom:10px}
+.app-icon{border-radius:10px;background:linear-gradient(145deg,#ffb15a,#a94b12);color:#17100a;box-shadow:0 0 22px #e9782630}
+.brand-copy b{letter-spacing:1.4px;text-transform:uppercase}
+.online-pill{border:1px solid #234533;background:#10251b}
+.wallet-card{border:1px solid #604021;border-radius:13px;background:linear-gradient(125deg,#211b14,#12161d 62%,#1e1711);box-shadow:inset 0 1px #ffffff0b,0 12px 28px #0008}
+.wallet-card:after{border-color:#f3a04c30;box-shadow:0 0 0 20px #f3a04c08,0 0 0 42px #f3a04c05}
+.wallet-top{color:#e2a45f}.wallet-mark{border-color:#a96b36;color:#ffb66d}
+.wallet-amount{font-size:38px;letter-spacing:-1.5px;text-shadow:0 0 24px #ff9d3b24}
+.wallet-bottom span:last-child{color:#e2a45f}
+.welcome h1 span{color:#f6a34e}
+.section-row b{letter-spacing:.7px;text-transform:uppercase}
+.region-option{border-radius:9px;background:linear-gradient(145deg,#171c23,#10141b);border-color:#303943}
+.region-option.active{background:linear-gradient(145deg,#382719,#1d1a17);border-color:#d9873d;color:#ffbd7a;box-shadow:0 0 18px #d9873d18}
+.plate-card,.chance-card,.empty-state,.inventory-list,.profile-card,.admin-section,.admin-stats>div{border-radius:12px;background:linear-gradient(145deg,#171c24,#10151c);border-color:#303944;box-shadow:inset 0 1px #ffffff08,0 10px 25px #0004}
+.plate{border-radius:5px}
+.spin-button{border:1px solid #e89b52;border-radius:10px;background:linear-gradient(105deg,#e68a37,#a64e18);color:#160e08;box-shadow:0 5px 18px #d47a3028}
+.spin-button:active{background:linear-gradient(105deg,#ffad60,#b65b20)}
+.chance-icon{background:#392819;color:#ffbd72}
+.page-view{padding-top:22px}
+.page-title h1{letter-spacing:-.8px}
+.bottom-nav{width:min(520px,100%);overflow-x:auto;justify-content:flex-start;gap:2px;padding-left:7px;padding-right:7px;background:#0c1118f2;border-color:#34302a;scrollbar-width:none}
+.bottom-nav::-webkit-scrollbar{display:none}
+.nav-item{flex:0 0 auto;min-width:55px;padding:3px 5px}
+.nav-item.selected{color:#ffad61}
+.nav-item.selected span{filter:drop-shadow(0 0 7px #f5a14e55)}
+.sell-all-button,.garage-reset{width:100%;margin-top:10px;padding:13px;border:1px solid #68482c;border-radius:9px;background:#211a14;color:#ffbd7a;font-size:10px;font-weight:800;letter-spacing:.7px}
+.garage-reset{border-color:#59313a;background:#24151a;color:#ff9eaa}
+.market-list,.chat-feed{display:flex;flex-direction:column;gap:8px;margin-top:14px}
+.market-row,.chat-message,.announcement-card{display:flex;align-items:center;gap:10px;padding:13px;border:1px solid #303a47;border-radius:10px;background:linear-gradient(145deg,#171d26,#10151c)}
+.market-row>div{min-width:0;flex:1}.market-row b,.market-row small,.chat-message b,.chat-message p{display:block}.market-row b{font-size:12px}.market-row small,.announcement-card small{margin-top:4px;color:#929baa;font-size:9px}.market-row strong{font-size:11px;color:#ffb66d;white-space:nowrap}.market-row button,.chat-compose button{border:1px solid #9b5b2d;border-radius:8px;padding:9px 10px;background:#382317;color:#ffc185;font-size:9px;font-weight:800}
+.market-row button:disabled{opacity:.5}
+.chat-message{display:block}.chat-message b{color:#ffb66d;font-size:10px}.chat-message p{margin:5px 0 0;font-size:12px;line-height:1.45;overflow-wrap:anywhere}
+.chat-compose{position:sticky;bottom:78px;display:flex;gap:8px;margin-top:12px;padding:8px;border:1px solid #303a47;border-radius:11px;background:#10151df2}
+.chat-compose input,.admin-section textarea,.admin-section select{min-width:0;flex:1;padding:12px;border:1px solid #35404e;border-radius:8px;background:#090e14;color:#f2f4f8;font:inherit;font-size:12px}
+.chat-compose button{min-width:44px;font-size:17px}
+.announcement-card{display:block;margin-top:10px}.announcement-card>b{font-size:13px;color:#ffbd7a}.announcement-card p{font-size:12px;line-height:1.5;color:#d3d9e2}
+.progress-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-top:1px solid #ffffff12;font-size:10px}.progress-row span{display:flex;flex-direction:column;gap:4px}.progress-row small{color:#929baa}.progress-row>b{font-size:8px;color:#ffb66d;white-space:nowrap}
+.event-option{border-radius:8px}
+.admin-section input,.admin-section textarea{border-radius:8px}
+@media(max-width:380px){.nav-item{min-width:49px}.nav-item small{font-size:8px}}
