@@ -33,6 +33,9 @@ class GenerateBody(BaseModel):
 @router.post("/api/generator")
 async def generator(body: GenerateBody, x_telegram_init_data: str = Header(default="")):
     uid,user=await identity(x_telegram_init_data)
+    ua_areas={"AA","AB","AC","AE","AH","AI","AM","AO","AP","AT","AX","BA","BB","BC","BE","BH","BI","BK","BM","BO","BT","BX","CA","CB","CE"}
+    if body.region=="UA" and body.area and body.area not in ua_areas:
+        raise HTTPException(400,"Неизвестный регион Украины")
     cost=15000
     async with Session() as db:
         async with db.begin():
