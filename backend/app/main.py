@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 from .db import engine, Session
 from .models import Base, Player, Plate, InventoryItem, Admin
+from .game import seed_default_plates
 from .security import verify_telegram_init_data
 from .game import spin_once, equip_talisman, SPIN_COST
 
@@ -12,6 +13,8 @@ from .game import spin_once, equip_talisman, SPIN_COST
 async def lifespan(app: FastAPI):
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+    async with Session() as db:
+        await seed_default_plates(db)
     yield
 
 app = FastAPI(title="NUMBER RUSH API", lifespan=lifespan)
