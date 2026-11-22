@@ -13,14 +13,14 @@ async def identity(init_data: str):
     try:
         user = verify_telegram_init_data(init_data)
         uid=int(user["id"])
-        async with Session() as db:
-            player=await db.get(Player,uid)
-            if not player:
-                db.add(Player(telegram_id=uid,username=user.get("username"),balance=100_000))
-                await db.commit()
-        return uid, user
     except Exception:
         raise HTTPException(401, "Открой Nomerki через Telegram")
+    async with Session() as db:
+        player=await db.get(Player,uid)
+        if not player:
+            db.add(Player(telegram_id=uid,username=user.get("username"),balance=100_000))
+            await db.commit()
+    return uid, user
 
 @router.get("/api/regions")
 async def regions():
