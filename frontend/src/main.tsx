@@ -26,6 +26,8 @@ function App() {
   const [inventory,setInventory]=React.useState<any[]>([]);
   const [showChoice,setShowChoice]=React.useState(false);
   const [notice,setNotice]=React.useState('');
+  const initData=tg?.initData || '';
+  const user=tg?.initDataUnsafe?.user;
   const [adminData,setAdminData]=React.useState<any>(null);
   const [grantId,setGrantId]=React.useState('');
   const [grantAmount,setGrantAmount]=React.useState('100000');
@@ -34,9 +36,6 @@ function App() {
   async function startEvent(type:string){const r=await fetch(API_URL+'/api/admin/event',{method:'POST',headers:{'Content-Type':'application/json','X-Telegram-Init-Data':initData},body:JSON.stringify({event_type:type,duration_minutes:30})});const d=await r.json();if(!r.ok){setNotice(d.detail||'Ошибка эвента');return;}setNotice('Запущено: '+d.title);await loadAdmin();}
   async function stopEvents(){const r=await fetch(API_URL+'/api/admin/event/stop',{method:'POST',headers:{'X-Telegram-Init-Data':initData}});const d=await r.json();if(!r.ok){setNotice(d.detail||'Ошибка');return;}setNotice('Все эвенты остановлены');await loadAdmin();}
   async function grantBalance(){const r=await fetch(API_URL+'/api/admin/grant',{method:'POST',headers:{'Content-Type':'application/json','X-Telegram-Init-Data':initData},body:JSON.stringify({telegram_id:Number(grantId),amount:Number(grantAmount)})});const d=await r.json();if(!r.ok){setNotice(d.detail||'Не удалось начислить');return;}setNotice('Начислено. Баланс: '+d.balance.toLocaleString('ru-RU')+' ₽');}
-
-  const initData=tg?.initData || '';
-  const user=tg?.initDataUnsafe?.user;
 
   React.useEffect(()=>{
     if(!initData) return;
