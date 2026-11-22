@@ -3,7 +3,7 @@ from fastapi import APIRouter, Header, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy import select, func, desc
 from .db import Session
-from .models import Player, Plate, InventoryItem, Ledger, ChatMessage, MarketListing, Announcement
+from .models import Player, Plate, InventoryItem, Ledger, ChatMessage, MarketListing, Announcement, TaskClaim
 from .security import verify_telegram_init_data
 from .game import make_plate_code, sell_price
 
@@ -12,7 +12,13 @@ router = APIRouter()
 async def identity(init_data: str):
     try:
         user = verify_telegram_init_data(init_data)
-        return int(user["id"]), user
+        uid=int(user["id"])
+        async with Session() as db:
+            player=await db.get(Player,uid)
+            if not player:
+                db.add(Player(telegram_id=uid,username=user.get("username"),balance=100_000))
+                await db.commit()
+        return uid, user
     except Exception:
         raise HTTPException(401, "Открой Nomerki через Telegram")
 
@@ -173,4 +179,32 @@ async def progress(x_telegram_init_data: str = Header(default="")):
         p=await db.get(Player,uid)
         items=await db.scalar(select(func.count()).select_from(InventoryItem).where(InventoryItem.owner_id==uid)) or 0
         rare=await db.scalar(select(func.count()).select_from(InventoryItem).join(Plate,Plate.id==InventoryItem.plate_id).where(InventoryItem.owner_id==uid,Plate.rarity.in_(["Легендарный","Мифический","Секретный","Абсолют"]))) or 0
-        return {"spins":p.spins,"items":items,"rare":rare,"achievements":[{"id":"first_spin","title":"Первый запуск","done":p.spins>=1},{"id":"collector_10","title":"Коллекционер","done":items>=10},{"id":"legend_hunter","title":"Охотник за редкостями","done":rare>=1},{"id":"spin_100","title":"Сотня запусков","done":p.spins>=100}],"tasks":[{"id":"spin_1","title":"Открой один номер","progress":min(p.spins,1),"target":1,"reward":1000,"done":p.spins>=1},{"id":"spin_10","title":"Сделай 10 прокруток","progress":min(p.spins,10),"target":10,"reward":5000,"done":p.spins>=10},{"id":"garage_5","title":"Собери 5 номеров","progress":min(items,5),"target":5,"reward":2500,"done":items>=5}]}
+        claimed=(await db.execute(select(TaskClaim.task_id).where(TaskClaim.player_id==uid))).scalars().all()
+        claimed_set=set(claimed)
+        tasks=[{"id":"spin_1","title":"Открой один номер","progress":min(p.spins,1),"target":1,"reward":1000,"done":p.spins>=1},{"id":"spin_10","title":"Сделай 10 прокруток","progress":min(p.spins,10),"target":10,"reward":5000,"done":p.spins>=10},{"id":"garage_5","title":"Собери 5 номеров","progress":min(items,5),"target":5,"reward":2500,"done":items>=5}]
+        for task in tasks:
+            task["claimed"]=task["id"] in claimed_set
+            task["can_claim"]=task["done"] and not task["claimed"]
+        return {"spins":p.spins,"items":items,"rare":rare,"achievements":[{"id":"first_spin","title":"Первый запуск","done":p.spins>=1},{"id":"collector_10","title":"Коллекционер","done":items>=10},{"id":"legend_hunter","title":"Охотник за редкостями","done":rare>=1},{"id":"spin_100","title":"Сотня запусков","done":p.spins>=100}],"tasks":tasks}
+
+
+class ClaimBody(BaseModel):
+    task_id: str = Field(min_length=1,max_length=32)
+
+@router.post("/api/tasks/claim")
+async def claim_task(body: ClaimBody,x_telegram_init_data: str = Header(default="")):
+    uid,_=await identity(x_telegram_init_data)
+    rewards={"spin_1":(1000,lambda spins,items:spins>=1),"spin_10":(5000,lambda spins,items:spins>=10),"garage_5":(2500,lambda spins,items:items>=5)}
+    if body.task_id not in rewards: raise HTTPException(400,"Неизвестное задание")
+    reward,check=rewards[body.task_id]
+    async with Session() as db:
+        async with db.begin():
+            player=(await db.execute(select(Player).where(Player.telegram_id==uid).with_for_update())).scalar_one()
+            items=await db.scalar(select(func.count()).select_from(InventoryItem).where(InventoryItem.owner_id==uid)) or 0
+            if not check(player.spins,items): raise HTTPException(400,"Задание ещё не выполнено")
+            exists=await db.scalar(select(TaskClaim.id).where(TaskClaim.player_id==uid,TaskClaim.task_id==body.task_id))
+            if exists: raise HTTPException(409,"Награда уже получена")
+            db.add(TaskClaim(player_id=uid,task_id=body.task_id))
+            player.balance+=reward
+            db.add(Ledger(player_id=uid,delta=reward,reason="task:"+body.task_id))
+            return {"ok":True,"reward":reward,"balance":player.balance}
