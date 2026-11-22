@@ -1,0 +1,49 @@
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy import BigInteger, Integer, String, Boolean, DateTime, ForeignKey, JSON, func, UniqueConstraint
+
+class Base(DeclarativeBase): pass
+
+class Player(Base):
+    __tablename__ = "players"
+    telegram_id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    username: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    balance: Mapped[int] = mapped_column(BigInteger, default=100_000, nullable=False)
+    spins: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    created_at: Mapped[object] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+class Plate(Base):
+    __tablename__ = "plates"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    code: Mapped[str] = mapped_column(String(24), nullable=False)
+    region: Mapped[str] = mapped_column(String(32), nullable=False)
+    category: Mapped[str] = mapped_column(String(32), nullable=False)
+    rarity: Mapped[str] = mapped_column(String(16), nullable=False)
+    talisman: Mapped[bool] = mapped_column(Boolean, default=False)
+    buff: Mapped[dict] = mapped_column(JSON, default=dict)
+
+class InventoryItem(Base):
+    __tablename__ = "inventory_items"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    owner_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("players.telegram_id"), index=True)
+    plate_id: Mapped[int] = mapped_column(ForeignKey("plates.id"))
+    equipped: Mapped[bool] = mapped_column(Boolean, default=False)
+    acquired_at: Mapped[object] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+class Ledger(Base):
+    __tablename__ = "ledger"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    player_id: Mapped[int] = mapped_column(BigInteger, index=True)
+    delta: Mapped[int] = mapped_column(BigInteger)
+    reason: Mapped[str] = mapped_column(String(64))
+    created_at: Mapped[object] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+class Admin(Base):
+    __tablename__ = "admins"
+    telegram_id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+
+class SpinRequest(Base):
+    __tablename__ = "spin_requests"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    player_id: Mapped[int] = mapped_column(BigInteger, index=True)
+    result_item_id: Mapped[int] = mapped_column(ForeignKey("inventory_items.id"))
+    created_at: Mapped[object] = mapped_column(DateTime(timezone=True), server_default=func.now())
