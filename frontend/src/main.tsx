@@ -59,6 +59,8 @@ function App() {
   async function stopEvents(){const r=await fetch(API_URL+'/api/admin/event/stop',{method:'POST',headers:{'X-Telegram-Init-Data':initData}});const d=await r.json();if(!r.ok){setNotice(d.detail||'Ошибка');return;}setNotice('Все эвенты остановлены');setGlobalEvents([]);await loadAdmin();}
   async function grantBalance(){const r=await fetch(API_URL+'/api/admin/grant',{method:'POST',headers:{'Content-Type':'application/json','X-Telegram-Init-Data':initData},body:JSON.stringify({telegram_id:Number(grantId),amount:Number(grantAmount)})});const d=await r.json();if(!r.ok){setNotice(d.detail||'Не удалось начислить');return;}setNotice('Начислено. Баланс: '+d.balance.toLocaleString('ru-RU')+' ₽');}
 
+  React.useEffect(()=>{if(tab!=='chat'||!initData)return;const timer=window.setInterval(()=>{fetch(API_URL+'/api/chat',{headers:{'X-Telegram-Init-Data':initData},cache:'no-store'}).then(r=>r.ok?r.json():{messages:[]}).then(d=>setChatMessages(d.messages||[])).catch(()=>{});},5000);return()=>window.clearInterval(timer);},[tab,initData]);
+
   React.useEffect(()=>{fetch(API_URL+'/api/events',{cache:'no-store'}).then(r=>r.ok?r.json():{events:[]}).then(d=>setGlobalEvents(d.events||[])).catch(()=>{});},[]);
   React.useEffect(()=>{
     if(!initData) return;
