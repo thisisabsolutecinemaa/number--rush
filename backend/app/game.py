@@ -40,7 +40,9 @@ def make_plate_code(region: str) -> str:
     if region=="CN": return f"{secrets.choice(['京','沪','粤','浙','苏','川','鲁','鄂','闽','津'])}{pick(letters,1)}·{pick(digits,5)}"
     if region=="RU":
         area=secrets.choice(["77","97","99","177","197","199","777","799","50","150","750","78","98","178","198"])
-        return f"{pick(letters,1)} {pick(digits,3)} {pick(letters,2)} {area}"
+        ru_letters="АВЕКМНОРСТУХ"
+        ru_pick=lambda count:"".join(secrets.choice(ru_letters) for _ in range(count))
+        return f"{ru_pick(1)} {pick(digits,3)} {ru_pick(2)} {area}"
     if region=="EU": return f"{pick(letters,2)} · {pick(digits,3)} · {pick(letters,2)}"
     return f"{pick(letters,2)} {pick(digits,4)} {pick(letters,2)}"
 
