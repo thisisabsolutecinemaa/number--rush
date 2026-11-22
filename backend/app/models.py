@@ -47,3 +47,12 @@ class SpinRequest(Base):
     player_id: Mapped[int] = mapped_column(BigInteger, index=True)
     result_item_id: Mapped[int] = mapped_column(ForeignKey("inventory_items.id"))
     created_at: Mapped[object] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class GameEvent(Base):
+    __tablename__ = "game_events"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    event_type: Mapped[str] = mapped_column(String(32), nullable=False)
+    title: Mapped[str] = mapped_column(String(80), nullable=False)
+    expires_at: Mapped[object] = mapped_column(DateTime(timezone=True), nullable=False)
+    created_by: Mapped[int] = mapped_column(BigInteger, nullable=False)
