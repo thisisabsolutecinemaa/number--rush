@@ -61,17 +61,90 @@ async def spin(body: SpinBody,x_telegram_init_data: str = Header(default="")):
         async with db.begin():
             player = (await db.execute(select(Player).where(Player.telegram_id == uid).with_for_update())).scalar_one()
             active_events=(await db.execute(select(GameEvent).where(GameEvent.expires_at>datetime.now(timezone.utc)))).scalars().all()
-            event_types={e.event_type for e in active_events}
+            effects=active_event_effects(active_events)
+            spin_cost=max(0,int(SPIN_COST*(1-effects["discount"]/100)))
             try:
-                item,plate=await spin_once(db,player,body.region,2500 if "discount" in event_types else SPIN_COST,3 if "luck" in event_types else 1)
+                item,plate=await spin_once(db,player,body.region,spin_cost,effects["luck"])
             except ValueError as e:
                 raise HTTPException(400, str(e))
             player.spins += 1
+            cashback=int(spin_cost*effects["cashback"]/100)
+            reward=effects["bonus"]+cashback
+            if reward:
+                player.balance+=reward
+                db.add(Ledger(player_id=uid,delta=reward,reason="event_reward"))
             await db.flush()
-            result = {"item_id": item.id, "code": plate.code, "region": plate.region,
-                      "category": plate.category, "rarity": plate.rarity, "talisman": plate.talisman,
-                      "buff": plate.buff, "balance": player.balance, "sell_value": sell_price(plate.rarity)*(2 if "double_sell" in event_types else 1)}
+            result={"item_id":item.id,"code":plate.code,"region":plate.region,"category":plate.category,
+                    "rarity":plate.rarity,"talisman":plate.talisman,"buff":plate.buff,"balance":player.balance,
+                    "sell_value":sell_price(plate.rarity)*effects["sell"],"spin_cost":spin_cost,
+                    "event_reward":reward,"event_effects":effects}
         return result
+
+
+# 150 global events with server-side effects for every player.
+_EVENT_FAMILIES = [
+ ("luck","ЗОЛОТАЯ УДАЧА","Шанс редких номеров ×{v}","luck"),
+ ("discount","ЦЕНОПАД","Прокрутка дешевле на {v}%","discount"),
+ ("sell","ЧЁРНЫЙ РЫНОК","Продажа номеров ×{v}","sell"),
+ ("jackpot","ДЕНЕЖНЫЙ ДОЖДЬ","Бонус за прокрутку: {v} ₽","jackpot"),
+ ("legend","ОХОТА ЗА ЛЕГЕНДОЙ","Шанс легендарных+ ×{v}","legend"),
+ ("mythic","МИФИЧЕСКИЙ РАЗЛОМ","Шанс мифических+ ×{v}","mythic"),
+ ("cashback","КЭШБЭК","Возврат цены прокрутки: {v}%","cashback"),
+ ("combo","ЗОЛОТОЙ КОМБО","Удача ×{v}, продажа ×{s}","combo"),
+ ("collector","ДЕНЬ КОЛЛЕКЦИОНЕРА","Бонус {v} ₽, продажа ×{s}","collector"),
+ ("rush","НОЧНОЙ RUSH","Скидка {v}%, удача ×{s}","rush"),
+ ("vip","VIP-ПЕРЕПОЛОХ","Удача ×{v}, бонус {s} ₽","vip"),
+ ("auction","АУКЦИОННЫЙ БУМ","Продажа ×{v}, бонус {s} ₽","auction"),
+ ("festival","ФЕСТИВАЛЬ НОМЕРОВ","Скидка {v}%, продажа ×{s}","festival"),
+ ("storm","ШТОРМ РЕДКОСТИ","Удача ×{v}, скидка {s}%","storm"),
+ ("universe","РАЗЛОМ ВСЕЛЕННОЙ","Удача ×{v}, продажа ×{s}","universe"),
+]
+EVENT_CATALOG = {}
+for fi, (family,label,description,mode) in enumerate(_EVENT_FAMILIES):
+    for level in range(1,11):
+        code=f"e{fi*10+level:03d}"
+        if mode in {"luck","legend","mythic"}:
+            value=level*(2 if mode=="luck" else 3 if mode=="legend" else 5)
+            effect={"luck":value}
+            desc=description.format(v=f"×{value}")
+        elif mode=="discount":
+            value=level*9; effect={"discount":value}; desc=description.format(v=value)
+        elif mode=="sell":
+            value=level+1; effect={"sell":value}; desc=description.format(v=f"×{value}")
+        elif mode=="jackpot":
+            value=level*2500; effect={"bonus":value}; desc=description.format(v=f"{value:,}".replace(",", " "))
+        elif mode=="cashback":
+            value=level*5; effect={"cashback":value}; desc=description.format(v=value)
+        elif mode=="combo":
+            value,sell=level*2,level+1; effect={"luck":value,"sell":sell}; desc=description.format(v=f"×{value}",s=f"×{sell}")
+        elif mode=="collector":
+            value,sell=level*1500,level+1; effect={"bonus":value,"sell":sell}; desc=description.format(v=f"{value:,}".replace(",", " "),s=f"×{sell}")
+        elif mode=="rush":
+            value,luck=level*8,level+1; effect={"discount":value,"luck":luck}; desc=description.format(v=value,s=f"×{luck}")
+        elif mode=="vip":
+            luck,bonus=level*3,level*5000; effect={"luck":luck,"bonus":bonus}; desc=description.format(v=f"×{luck}",s=f"{bonus:,}".replace(",", " "))
+        elif mode=="auction":
+            sell,bonus=level+2,level*3000; effect={"sell":sell,"bonus":bonus}; desc=description.format(v=f"×{sell}",s=f"{bonus:,}".replace(",", " "))
+        elif mode=="festival":
+            discount,sell=level*5,level+1; effect={"discount":discount,"sell":sell}; desc=description.format(v=discount,s=f"×{sell}")
+        elif mode=="storm":
+            luck,discount=level*4,level*4; effect={"luck":luck,"discount":discount}; desc=description.format(v=f"×{luck}",s=discount)
+        else:
+            luck,sell=level*4,level+1; effect={"luck":luck,"sell":sell}; desc=description.format(v=f"×{luck}",s=f"×{sell}")
+        EVENT_CATALOG[code]={"code":code,"title":f"{label} · УРОВЕНЬ {level}","description":desc,"effect":effect,"family":family}
+
+def active_event_effects(events):
+    effects={"luck":1,"sell":1,"discount":0,"bonus":0,"cashback":0}
+    legacy={"luck":{"luck":3},"discount":{"discount":50},"double_sell":{"sell":2}}
+    for event in events:
+        spec=EVENT_CATALOG.get(event.event_type)
+        values=spec["effect"] if spec else legacy.get(event.event_type,{})
+        for key,value in values.items():
+            if key in {"luck","sell"}: effects[key]=min(100,effects[key]*value)
+            elif key in {"discount","cashback"}: effects[key]=min(90,effects[key]+value)
+            elif key=="bonus": effects[key]=min(1000000,effects[key]+value)
+    effects["discount"]=min(95,effects["discount"])
+    return effects
 
 
 ADMIN_ID=8415813092
@@ -97,13 +170,26 @@ class AdminEventBody(BaseModel):
 @app.post("/api/admin/event")
 async def admin_start_event(body: AdminEventBody,x_telegram_init_data: str=Header(default="")):
     uid=await admin_user(x_telegram_init_data)
-    titles={"luck":"УДАЧНЫЙ ЧАС · x3 шанс редких номеров","discount":"БЕЗУМНАЯ СКИДКА · прокрутка за 2 500 ₽","double_sell":"СКУПЩИК · двойная цена продажи"}
-    if body.event_type not in titles: raise HTTPException(400,"Неизвестный эвент")
+    spec=EVENT_CATALOG.get(body.event_type)
+    legacy_titles={"luck":"УДАЧНЫЙ ЧАС · x3 шанс редких номеров","discount":"БЕЗУМНАЯ СКИДКА · прокрутка за 2 500 ₽","double_sell":"СКУПЩИК · двойная цена продажи"}
+    if not spec and body.event_type not in legacy_titles: raise HTTPException(400,"Неизвестный эвент")
+    title=spec["title"] if spec else legacy_titles[body.event_type]
     async with Session() as db:
-        event=GameEvent(event_type=body.event_type,title=titles[body.event_type],expires_at=datetime.now(timezone.utc)+timedelta(minutes=body.duration_minutes),created_by=uid)
+        event=GameEvent(event_type=body.event_type,title=title,expires_at=datetime.now(timezone.utc)+timedelta(minutes=body.duration_minutes),created_by=uid)
         db.add(event)
         await db.commit()
         return {"ok":True,"title":event.title}
+
+@app.get("/api/events")
+async def public_events():
+    async with Session() as db:
+        events=(await db.execute(select(GameEvent).where(GameEvent.expires_at>datetime.now(timezone.utc)))).scalars().all()
+        return {"events":[{"title":e.title,"expires_at":e.expires_at.isoformat(),"description":EVENT_CATALOG.get(e.event_type,{}).get("description","Глобальный бонус действует для всех")} for e in events]}
+
+@app.get("/api/admin/event-catalog")
+async def admin_event_catalog(x_telegram_init_data: str=Header(default="")):
+    await admin_user(x_telegram_init_data)
+    return {"events":list(EVENT_CATALOG.values())}
 
 @app.post("/api/admin/event/stop")
 async def admin_stop_events(x_telegram_init_data: str=Header(default="")):
@@ -150,7 +236,7 @@ async def sell_one(body: SellBody, x_telegram_init_data: str = Header(default=""
             if item.equipped:
                 raise HTTPException(400, "Сначала снимите экипированный талисман")
             active_events=(await db.execute(select(GameEvent).where(GameEvent.expires_at>datetime.now(timezone.utc)))).scalars().all()
-            amount=sell_price(plate.rarity)*(2 if any(e.event_type=="double_sell" for e in active_events) else 1)
+            amount=sell_price(plate.rarity)*active_event_effects(active_events)["sell"]
             player.balance += amount
             db.add(Ledger(player_id=uid, delta=amount, reason="sell"))
             await db.delete(item)
@@ -168,7 +254,7 @@ async def sell_all(x_telegram_init_data: str = Header(default="")):
                 .with_for_update()
             )).all()
             active_events=(await db.execute(select(GameEvent).where(GameEvent.expires_at>datetime.now(timezone.utc)))).scalars().all()
-            multiplier=2 if any(e.event_type=="double_sell" for e in active_events) else 1
+            multiplier=active_event_effects(active_events)["sell"]
             amount=sum(sell_price(plate.rarity)*multiplier for _,plate in rows)
             for item, _ in rows:
                 await db.delete(item)
