@@ -46,9 +46,18 @@ def make_plate_code(region: str) -> str:
     if region=="EU": return f"{pick(letters,2)} · {pick(digits,3)} · {pick(letters,2)}"
     return f"{pick(letters,2)} {pick(digits,4)} {pick(letters,2)}"
 
-async def spin_once(db: AsyncSession,player: Player,region: str="UA",cost: int=SPIN_COST,luck_multiplier: int=1):
+async def spin_once(db: AsyncSession,player: Player,region: str="UA",cost: int=SPIN_COST,luck_multiplier: int=1,legend_multiplier: int=1,mythic_multiplier: int=1):
     if player.balance<cost: raise ValueError("Недостаточно игровых рублей")
-    weights=[(name,weight*(luck_multiplier if name in {"Редкий","Эпический","Легендарный","Мифический"} else 1)) for name,weight in RARITY_WEIGHTS if weight>0]
+    weights=[]
+    for name,base_weight in RARITY_WEIGHTS:
+        if name=="Секретный" and mythic_multiplier>1: base_weight=1
+        if name=="Абсолют" and mythic_multiplier>=50: base_weight=1
+        if base_weight<=0: continue
+        multiplier=1
+        if name in {"Редкий","Эпический","Легендарный","Мифический"}: multiplier*=luck_multiplier
+        if name in {"Легендарный","Мифический","Секретный","Абсолют"}: multiplier*=legend_multiplier
+        if name in {"Мифический","Секретный","Абсолют"}: multiplier*=mythic_multiplier
+        weights.append((name,base_weight*multiplier))
     ticket=secrets.randbelow(sum(weight for _,weight in weights))
     rarity=next(name for name,weight in weights if (ticket:=ticket-weight)<0)
     region=region if region in {"UA","CN","RU","EU"} else "UA"
