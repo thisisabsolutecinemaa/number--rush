@@ -64,7 +64,7 @@ async def spin(body: SpinBody,x_telegram_init_data: str = Header(default="")):
             effects=active_event_effects(active_events)
             spin_cost=max(0,int(SPIN_COST*(1-effects["discount"]/100)))
             try:
-                item,plate=await spin_once(db,player,body.region,spin_cost,effects["luck"])
+                item,plate=await spin_once(db,player,body.region,spin_cost,effects["luck"],effects["legend"],effects["mythic"])
             except ValueError as e:
                 raise HTTPException(400, str(e))
             player.spins += 1
@@ -106,6 +106,8 @@ for fi, (family,label,description,mode) in enumerate(_EVENT_FAMILIES):
         if mode in {"luck","legend","mythic"}:
             value=level*(2 if mode=="luck" else 3 if mode=="legend" else 5)
             effect={"luck":value}
+            if mode=="legend": effect={"legend":value}
+            if mode=="mythic": effect={"mythic":value}
             desc=description.format(v=f"×{value}")
         elif mode=="discount":
             value=level*9; effect={"discount":value}; desc=description.format(v=value)
@@ -134,13 +136,13 @@ for fi, (family,label,description,mode) in enumerate(_EVENT_FAMILIES):
         EVENT_CATALOG[code]={"code":code,"title":f"{label} · УРОВЕНЬ {level}","description":desc,"effect":effect,"family":family}
 
 def active_event_effects(events):
-    effects={"luck":1,"sell":1,"discount":0,"bonus":0,"cashback":0}
+    effects={"luck":1,"legend":1,"mythic":1,"sell":1,"discount":0,"bonus":0,"cashback":0}
     legacy={"luck":{"luck":3},"discount":{"discount":50},"double_sell":{"sell":2}}
     for event in events:
         spec=EVENT_CATALOG.get(event.event_type)
         values=spec["effect"] if spec else legacy.get(event.event_type,{})
         for key,value in values.items():
-            if key in {"luck","sell"}: effects[key]=min(100,effects[key]*value)
+            if key in {"luck","legend","mythic","sell"}: effects[key]=min(100,effects[key]*value)
             elif key in {"discount","cashback"}: effects[key]=min(90,effects[key]+value)
             elif key=="bonus": effects[key]=min(1000000,effects[key]+value)
     effects["discount"]=min(95,effects["discount"])
