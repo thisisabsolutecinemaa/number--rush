@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from .db import engine, Session
-from .models import Base, Player, Plate, InventoryItem, Admin
+from .models import Base, Player, Plate, InventoryItem, Admin, Ledger
 from .game import seed_default_plates
 from .security import verify_telegram_init_data
 from .game import spin_once, equip_talisman, SPIN_COST, sell_price
