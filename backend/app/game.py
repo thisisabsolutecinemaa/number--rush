@@ -18,6 +18,21 @@ RARITY_WEIGHTS = [
 # Секретные и абсолютные номера выдаются только событиями/администратором.
 SPIN_COST = 5_000
 
+SELL_PRICES = {
+    "Обычный": 500,
+    "Необычный": 1_500,
+    "Редкий": 5_000,
+    "Эпический": 15_000,
+    "Легендарный": 50_000,
+    "Мифический": 150_000,
+    "Секретный": 500_000,
+    "Абсолют": 1_000_000,
+}
+
+def sell_price(rarity: str) -> int:
+    return SELL_PRICES.get(rarity, 500)
+
+
 async def spin_once(db: AsyncSession, player: Player):
     if player.balance < SPIN_COST:
         raise ValueError("Недостаточно игровых рублей")
