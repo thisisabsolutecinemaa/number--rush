@@ -90,3 +90,15 @@ class TaskClaim(Base):
     player_id: Mapped[int] = mapped_column(BigInteger, index=True)
     task_id: Mapped[str] = mapped_column(String(32), nullable=False)
     created_at: Mapped[object] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class Operator(Base):
+    __tablename__ = "sim_operators"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
+    country: Mapped[str] = mapped_column(String(48), nullable=False)
+    country_code: Mapped[str] = mapped_column(String(3), nullable=False)
+    prefixes: Mapped[list] = mapped_column(JSON, default=list, nullable=False)
+    custom: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    price: Mapped[int] = mapped_column(BigInteger, default=5000, nullable=False)
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
