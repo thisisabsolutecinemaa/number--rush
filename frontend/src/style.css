@@ -156,3 +156,37 @@ html,body,#root{background:#07090d}
 @media(max-width:380px){.nav-item{min-width:49px}.nav-item small{font-size:8px}}
 
 .task-actions button{border:1px solid #98602f;border-radius:8px;background:#382317;color:#ffc185;padding:8px 10px;font-size:8px;font-weight:800}
+
+
+/* SIM-first collection experience */
+.sim-view{padding-top:22px;animation:simFade .42s cubic-bezier(.2,.75,.25,1) both}
+.sim-filter{display:flex;align-items:center;justify-content:space-between;margin:18px 0 10px;color:#9aa7b7;font-size:11px}
+.sim-filter select{min-width:145px;border:1px solid #2c394a;border-radius:10px;background:#121c29;color:#eef4fb;padding:10px 12px;font:inherit}
+.sim-operator-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;max-height:220px;overflow:auto;padding:2px 2px 8px}
+.sim-operator{position:relative;text-align:left;display:flex;flex-direction:column;gap:4px;min-height:66px;padding:11px 12px;border:1px solid #263547;border-radius:13px;background:linear-gradient(145deg,#172333,#101923);color:#eef4fb;transition:transform .22s ease,border-color .22s ease,box-shadow .22s ease}
+.sim-operator:active{transform:scale(.97)}
+.sim-operator.active{border-color:#4ba7ff;box-shadow:0 0 0 1px #4ba7ff40,0 8px 22px #007aff18;background:linear-gradient(145deg,#1a3855,#142437)}
+.sim-operator b{font-size:12px}.sim-operator small{font-size:9px;color:#94a5b9}.sim-operator em{font-size:8px;color:#ffd27c;font-style:normal}
+.sim-operator-dot{position:absolute;right:12px;top:13px;width:7px;height:7px;border-radius:50%;background:#52667c}.sim-operator.active .sim-operator-dot{background:#49c4ff;box-shadow:0 0 10px #49c4ff}
+.sim-card-preview{position:relative;min-height:190px;margin:17px 0 12px;padding:18px 20px;border:1px solid #6d93b4;border-radius:20px;overflow:hidden;color:#eff8ff;background:radial-gradient(ellipse at 85% 10%,#347ab4 0,transparent 38%),linear-gradient(135deg,#172c45 0%,#0b1726 54%,#1b3450 100%);box-shadow:0 15px 35px #00101f50,inset 0 1px #ffffff24}
+.sim-card-preview:before,.sim-card-preview:after{content:"";position:absolute;border:1px solid #ffffff18;border-radius:50%;width:230px;height:230px;right:-95px;bottom:-160px}
+.sim-card-preview:after{width:160px;height:160px;right:-58px;bottom:-125px}
+.sim-card-chip{width:36px;height:29px;border:1px solid #d5bb78;border-radius:6px;background:linear-gradient(135deg,#f3df9e,#9b8553);display:grid;grid-template-columns:1fr 1fr;gap:2px;padding:4px}
+.sim-card-chip i{border:1px solid #8a7548;border-radius:2px}
+.sim-card-brand{position:absolute;right:18px;top:20px;font-size:9px;font-weight:900;letter-spacing:1.5px;color:#a9c8e3}.sim-card-brand span{margin-left:5px;color:#fff}
+.sim-card-operator{position:relative;margin-top:30px;font-size:25px;font-weight:800;letter-spacing:-.8px}
+.sim-card-country{position:relative;margin-top:4px;color:#a9c4dc;font-size:9px;letter-spacing:1.2px}
+.sim-card-bottom{position:absolute;left:20px;right:20px;bottom:17px;display:flex;justify-content:space-between;color:#8caac6;font-size:8px;font-weight:800;letter-spacing:1.2px}
+.sim-number-window{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;min-height:80px;padding:14px;border:1px solid #29394c;border-radius:14px;background:linear-gradient(135deg,#101a27,#0b121c);color:#f2f7fd}
+.sim-number-window>span{font-size:22px;font-weight:800;letter-spacing:1px;font-variant-numeric:tabular-nums}
+.sim-number-window small{font-size:9px;color:#8ea3b9}
+.sim-number-window.rolling>span{animation:simNumberRoll .22s linear infinite;filter:blur(.3px)}
+.sim-number-window:not(.rolling)>span{animation:simReveal .55s cubic-bezier(.16,1,.3,1) both}
+.sim-generate{width:100%;margin-top:12px;padding:15px 12px;border:1px solid #59b8ff;border-radius:13px;background:linear-gradient(100deg,#0878df,#20a9f2);color:#fff;font-size:10px;font-weight:900;letter-spacing:1px;box-shadow:0 8px 22px #0786ed30;transition:transform .2s ease,filter .2s ease}
+.sim-generate:active{transform:scale(.985);filter:brightness(1.12)}.sim-generate:disabled{opacity:.55}
+.sim-admin{margin-top:22px!important}.sim-admin>small{display:block;line-height:1.5;color:#91a0b2}
+.sim-admin input{width:100%;margin-top:8px}.sim-admin-list{margin-top:10px}.sim-admin-list>div{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 0;border-top:1px solid #ffffff14}.sim-admin-list span{display:flex;flex-direction:column;gap:4px}.sim-admin-list small{font-size:9px;color:#9aa7b7}.sim-admin-list button{padding:8px 10px;border-radius:8px;background:#25374b;color:#d8eaff;font-size:8px;font-weight:800}
+@keyframes simFade{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes simNumberRoll{0%{transform:translateY(-5px);opacity:.55}50%{transform:translateY(3px);opacity:1}100%{transform:translateY(-5px);opacity:.65}}
+@keyframes simReveal{0%{opacity:0;transform:translateY(14px) scale(.97);filter:blur(5px)}100%{opacity:1;transform:translateY(0) scale(1);filter:blur(0)}}
+@media(prefers-reduced-motion:reduce){.sim-view,.sim-number-window>span,.sim-operator,.sim-generate{animation:none!important;transition:none!important}}
