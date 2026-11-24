@@ -142,17 +142,8 @@ for fi, (family,label,description,mode) in enumerate(_EVENT_FAMILIES):
         EVENT_CATALOG[code]={"code":code,"title":f"{label} · УРОВЕНЬ {level}","description":desc,"effect":effect,"family":family}
 
 def active_event_effects(events):
-    effects={"luck":1,"legend":1,"mythic":1,"sell":1,"discount":0,"bonus":0,"cashback":0}
-    legacy={"luck":{"luck":3},"discount":{"discount":50},"double_sell":{"sell":2}}
-    for event in events:
-        spec=EVENT_CATALOG.get(event.event_type)
-        values=spec["effect"] if spec else legacy.get(event.event_type,{})
-        for key,value in values.items():
-            if key in {"luck","legend","mythic","sell"}: effects[key]=min(100,effects[key]*value)
-            elif key in {"discount","cashback"}: effects[key]=min(90,effects[key]+value)
-            elif key=="bonus": effects[key]=min(1000000,effects[key]+value)
-    effects["discount"]=min(95,effects["discount"])
-    return effects
+    # Number Rush runs without temporary events or event multipliers.
+    return {"luck":1,"legend":1,"mythic":1,"sell":1,"discount":0,"bonus":0,"cashback":0}
 
 
 ADMIN_ID=8415813092
