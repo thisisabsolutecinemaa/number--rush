@@ -29,7 +29,7 @@ function App() {
   const [result,setResult]=React.useState<any>(null);
   const [busy,setBusy]=React.useState(false);
   const [error,setError]=React.useState('');
-  const [tab,setTab]=React.useState<Tab>('spin');
+  const [tab,setTab]=React.useState<Tab>('sim');
   const [country,setCountry]=React.useState<keyof typeof regions>('UA');
   const [inventory,setInventory]=React.useState<any[]>([]);
   const [showChoice,setShowChoice]=React.useState(false);
