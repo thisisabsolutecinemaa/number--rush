@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from sqlalchemy import select, func
 from .db import engine, Session
-from .models import Base, Player, Plate, InventoryItem, Admin, Ledger, GameEvent, MarketListing
+from .models import Base, Player, Plate, InventoryItem, Admin, Ledger, GameEvent, MarketListing, Operator
 from .game import seed_default_plates
 from .security import verify_telegram_init_data
 from .game import spin_once, equip_talisman, SPIN_COST, sell_price
@@ -17,6 +17,10 @@ async def lifespan(app: FastAPI):
         await conn.run_sync(Base.metadata.create_all)
     async with Session() as db:
         await seed_default_plates(db)
+        for name,country,code,prefixes in DEFAULT_OPERATORS:
+            exists=(await db.execute(select(Operator.id).where(Operator.name==name))).scalar_one_or_none()
+            if not exists: db.add(Operator(name=name,country=country,country_code=code,prefixes=prefixes,custom=False,price=5000,enabled=True))
+        await db.commit()
     yield
 
 app = FastAPI(title="Nomerki API", lifespan=lifespan)
@@ -297,6 +301,110 @@ async def inventory(x_telegram_init_data: str = Header(default="")):
         return [{"item_id": i.id, "code": p.code, "region": p.region, "category": p.category,
                  "rarity": p.rarity, "talisman": p.talisman, "equipped": i.equipped, "buff": p.buff}
                 for i,p in rows]
+
+# SIM operator catalog for CIS countries
+DEFAULT_OPERATORS = [
+    ("MegaFon","Россия","RU",["+7920","+7921","+7922","+7923","+7924","+7925","+7926","+7927","+7928","+7929"]),
+    ("Билайн","Россия","RU",["+7903","+7904","+7905","+7906","+7907","+7908","+7909","+7960","+7961","+7962","+7963","+7964","+7965","+7966","+7967","+7968","+7969"]),
+    ("МТС","Россия","RU",["+7910","+7911","+7912","+7913","+7914","+7915","+7916","+7917","+7918","+7919","+7980","+7981","+7982","+7983","+7984","+7985","+7986","+7987","+7988","+7989"]),
+    ("T2","Россия","RU",["+7900","+7901","+7902","+7950","+7951","+7952","+7953","+7954","+7955","+7956","+7957","+7958","+7959"]),
+    ("Yota","Россия","RU",["+7900","+7901","+7902"]),
+    ("Киевстар","Украина","UA",["+38067","+38068","+38096","+38097","+38098"]),
+    ("Vodafone","Украина","UA",["+38050","+38066","+38095","+38099"]),
+    ("lifecell","Украина","UA",["+38063","+38073","+38093"]),
+    ("A1","Беларусь","BY",["+37529","+37544"]),
+    ("МТС Беларусь","Беларусь","BY",["+37529","+37533"]),
+    ("life:)","Беларусь","BY",["+37525"]),
+    ("Beeline KZ","Казахстан","KZ",["+7705","+7706","+7771","+7775"]),
+    ("Kcell","Казахстан","KZ",["+7701","+7702","+7770","+7776"]),
+    ("activ","Казахстан","KZ",["+7701","+7702"]),
+    ("Tele2","Казахстан","KZ",["+7707","+7747"]),
+    ("Altel","Казахстан","KZ",["+7700","+7708"]),
+    ("Azercell","Азербайджан","AZ",["+99450","+99451"]),
+    ("Bakcell","Азербайджан","AZ",["+99455","+99499"]),
+    ("Nar","Азербайджан","AZ",["+99470","+99477"]),
+    ("Viva-MTS","Армения","AM",["+37477","+37493","+37494","+37498"]),
+    ("Team Telecom Armenia","Армения","AM",["+37491","+37496","+37499"]),
+    ("Ucom","Армения","AM",["+37441","+37444","+37455"]),
+    ("O!","Кыргызстан","KG",["+99650","+99670"]),
+    ("Beeline KG","Кыргызстан","KG",["+99677","+99622"]),
+    ("Mega","Кыргызстан","KG",["+99655","+99699"]),
+    ("Tcell","Таджикистан","TJ",["+99293","+99250"]),
+    ("Babilon-M","Таджикистан","TJ",["+99291","+99297"]),
+    ("MegaFon Tajikistan","Таджикистан","TJ",["+99290","+992907"]),
+    ("ZET-Mobile","Таджикистан","TJ",["+99291","+99292"]),
+    ("Beeline Uzbekistan","Узбекистан","UZ",["+99890","+99891"]),
+    ("Ucell","Узбекистан","UZ",["+99893","+99894"]),
+    ("Uzmobile","Узбекистан","UZ",["+99895","+99899"]),
+    ("Mobiuz","Узбекистан","UZ",["+99888","+99897"]),
+    ("Perfectum","Узбекистан","UZ",["+99898"]),
+    ("Orange Moldova","Молдова","MD",["+37369","+37378"]),
+    ("Moldcell","Молдова","MD",["+37360","+37379"]),
+    ("Unite","Молдова","MD",["+37367","+37368"]),
+    ("Altyn Asyr","Туркменистан","TM",["+99361","+99362","+99363"]),
+]
+
+@app.get("/api/operators")
+async def list_operators():
+    async with Session() as db:
+        rows=(await db.execute(select(Operator).where(Operator.enabled.is_(True)).order_by(Operator.country,Operator.name))).scalars().all()
+        return {"operators":[{"id":o.id,"name":o.name,"country":o.country,"country_code":o.country_code,"custom":o.custom,"price":o.price} for o in rows]}
+
+class SimGenerateBody(BaseModel):
+    operator_id: int = Field(gt=0)
+
+@app.post("/api/sim/generate")
+async def generate_sim(body: SimGenerateBody, x_telegram_init_data: str=Header(default="")):
+    import secrets
+    uid,_=await current_player(x_telegram_init_data)
+    async with Session() as db:
+        async with db.begin():
+            player=(await db.execute(select(Player).where(Player.telegram_id==uid).with_for_update())).scalar_one()
+            operator=(await db.execute(select(Operator).where(Operator.id==body.operator_id,Operator.enabled.is_(True)))).scalar_one_or_none()
+            if not operator: raise HTTPException(404,"Оператор не найден или отключён")
+            cost=operator.price if operator.custom else 5000
+            if player.balance < cost: raise HTTPException(400,"Недостаточно игровых рублей")
+            prefix=secrets.choice(operator.prefixes or ["+000"])
+            number=prefix+"".join(secrets.choice("0123456789") for _ in range(7))
+            player.balance-=cost
+            db.add(Ledger(player_id=uid,delta=-cost,reason="sim:"+operator.name[:48]))
+            plate=Plate(code=number,region=operator.country,category=operator.name,rarity="Обычный",talisman=False,buff={"kind":"sim","operator":operator.name,"country_code":operator.country_code})
+            db.add(plate)
+            await db.flush()
+            item=InventoryItem(owner_id=uid,plate_id=plate.id)
+            db.add(item)
+            await db.flush()
+            return {"ok":True,"item_id":item.id,"number":number,"operator":operator.name,"country":operator.country,"country_code":operator.country_code,"balance":player.balance,"price":cost}
+
+class AdminOperatorBody(BaseModel):
+    name: str = Field(min_length=2,max_length=64)
+    country: str = Field(min_length=2,max_length=48)
+    country_code: str = Field(min_length=2,max_length=3)
+    prefixes: list[str] = Field(min_length=1,max_length=12)
+    price: int = Field(default=1000000000,ge=1000000000,le=9000000000000000)
+
+@app.post("/api/admin/operators")
+async def create_custom_operator(body: AdminOperatorBody,x_telegram_init_data: str=Header(default="")):
+    await admin_user(x_telegram_init_data)
+    prefixes=[p.strip() for p in body.prefixes if p.strip()]
+    if not prefixes or any(not p.startswith("+") or not p[1:].isdigit() or len(p)>7 for p in prefixes): raise HTTPException(400,"Префиксы должны быть в формате +код")
+    async with Session() as db:
+        if (await db.execute(select(Operator.id).where(Operator.name==body.name))).scalar_one_or_none(): raise HTTPException(409,"Оператор с таким названием уже существует")
+        op=Operator(name=body.name,country=body.country,country_code=body.country_code.upper(),prefixes=prefixes,custom=True,price=body.price,enabled=True)
+        db.add(op)
+        await db.commit()
+        await db.refresh(op)
+        return {"ok":True,"operator":{"id":op.id,"name":op.name,"country":op.country,"country_code":op.country_code,"custom":op.custom,"price":op.price}}
+
+@app.post("/api/admin/operators/{operator_id}/toggle")
+async def toggle_operator(operator_id: int,x_telegram_init_data: str=Header(default="")):
+    await admin_user(x_telegram_init_data)
+    async with Session() as db:
+        op=await db.get(Operator,operator_id)
+        if not op: raise HTTPException(404,"Оператор не найден")
+        op.enabled=not op.enabled
+        await db.commit()
+        return {"ok":True,"enabled":op.enabled}
 
 @app.get("/api/health")
 async def health():
